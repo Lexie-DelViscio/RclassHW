@@ -1,0 +1,153 @@
+---
+title: "Intermediate HW"
+author: "Lexie DelViscio"
+date: "1/22/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+Loop to be evaluated in #1-3, and modified in #4
+
+```{r}
+sp_ids <- unique(iris$Species)
+
+output <- matrix(0, nrow=length(sp_ids), ncol=ncol(iris)-1)
+rownames(output) <- sp_ids
+colnames(output) <- names(iris[ , -ncol(iris)])
+
+for(i in seq_along(sp_ids)) {
+    iris_sp <- subset(iris, subset=Species == sp_ids[i], select=-Species)
+    for(j in 1:(ncol(iris_sp))) {
+        x <- 0
+        y <- 0
+        if (nrow(iris_sp) > 0) {
+            for(k in 1:nrow(iris_sp)) {
+                x <- x + iris_sp[k, j]
+                y <- y + 1
+            }
+            output[i, j] <- x / y 
+        }
+    }
+}
+output
+```
+
+1) Describe the values stored in the object output. In other words what did the loops create?
+
+The values stored in the object output are the mean values of the length and width of the petals for each Iris species (Setosa, Versicolor, and Virginica). The loops created a matrix with 3 rows corresponding with the species name and 4 columns corresponding with the original iris columns, without the species column. In addition, the data contained in these rows is once again the averages for each species. 
+
+2) Describe using pseudo-code how output was calculated
+
+loop from 1 through the length of species identities 
+    subset of iris data without the species column
+    loop from 1 through the number of columns in the iris_sp data
+    if the number of rows in the iris_sp data is greater than 0
+      loop from 1 through the number of rows in the iris_sp data
+          make x a value equal to 0 + the value in the iris_sp matrix 
+          then make y equal to y + 1 (the total number of rows in the matrix + 1)
+          the values of output are then set equal to x/y which are the averages 
+output is then printed and it's contents were explained above.
+
+3) The variables in the loop were named so as to be vague. How can the objects 
+output, x, and y be renamed such that it is clearer what is occurring in the loop.
+
+x is the cumulative values of the data iris_sp for each unique column and row, it
+would make sense to rename this variable as cumulative
+
+y can be described as the total frequency of the unique values,
+so in relation to statistics it would make sense to rename y as n. Since this is 
+a common variable used when discussing sample size of data. 
+          
+output can be renamed as average_by_species as this is what the matrix itself is
+showing. The species names are each of the rows, and each of the columns is a 
+specific measurement. Contained in the matrix is the average values calculated 
+from the complete data set. So, this should be renamed as average_by_species so 
+that it reflects what is being shown. 
+
+4) It is possible to accomplish the same task using fewer lines of code? 
+Please suggest one other way to calculate output that decreases the number of loops by 1.
+
+```{r}
+sp_ids <- unique(iris$Species)
+
+average_by_species <- matrix(0, nrow=length(sp_ids), ncol=ncol(iris)-1)
+rownames(average_by_species) <- sp_ids
+colnames(average_by_species) <- names(iris[ , -ncol(iris)])
+cumulative <- NULL
+
+for(names in seq_along(sp_ids)) {
+    iris_sp <- subset(iris, subset=Species == sp_ids[names], select=-Species)
+    for(n in names(iris_sp)) {
+      if(class(iris_sp[,n]) == 'integer' | class(iris_sp[,n]) == 'numeric'){
+        cumulative <- mean(iris_sp[,n])
+          }
+          average_by_species[names, n] <- cumulative
+        }
+    }
+average_by_species
+
+
+
+```
+ 
+
+Sum of a sequence
+5) You have a vector x with the numbers 1:10. Write a for loop that will produce 
+a vector y that contains the sum of x up to that # index of x. So for example the 
+elements of x are 1, 2, 3, and so on and the elements of y would be 1, 3, 6, and so on.
+
+```{r}
+x <- 1:10
+y <- NULL
+for(i in x) {
+    y <- x * (x+1) / 2
+}
+y
+```
+
+
+6) Modify your for loop so that if the sum is greater than 10 the value of y is set to NA
+
+```{r}
+x <- 1:10
+y <- NULL
+for(i in x) {
+    sum <- x * (x+1) / 2
+    if(sum[i] <= 10){
+      y <- sum
+    }
+    else{
+      y[i] <- NA
+    }
+}
+y
+```
+
+7) Place your for loop into a function that accepts as its argument any vector of 
+arbitrary length and it will return y.
+
+```{r}
+sum_of_sequence <- function(x) {
+  y <- NULL
+  x <- 1:x
+  for(i in x) {
+    sum <- x * (x+1) / 2
+    if(sum[i] <= 10){
+      y <- sum
+    }
+    else{
+      y[i] <- NA
+    }
+  }
+  return(y)
+}
+
+sum_of_sequence(18)
+```
+
+
