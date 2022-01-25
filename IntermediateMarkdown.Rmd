@@ -11,6 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## R Markdown
 
+#Iris Loops
 Loop to be evaluated in #1-3, and modified in #4
 
 ```{r}
@@ -96,7 +97,8 @@ average_by_species
 ```
  
 
-Sum of a sequence
+#Sum of a sequence
+
 5) You have a vector x with the numbers 1:10. Write a for loop that will produce 
 a vector y that contains the sum of x up to that # index of x. So for example the 
 elements of x are 1, 2, 3, and so on and the elements of y would be 1, 3, 6, and so on.
@@ -150,4 +152,20 @@ sum_of_sequence <- function(x) {
 sum_of_sequence(18)
 ```
 
+#Optional 
+8) Fibonacci numbers are a sequence in which a given number is the sum of the precedding two numbers. So starting at 0 and 1 the sequence would be 0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, ...
+Write and apply a simple R function that can accomplish this task with a for loop. 
 
+```{r}
+fibonacci <- function(n) {
+  n <- 1:n
+  x <- c(0,1)
+  for(i in n) {
+    position <- length(x)
+    fib_numbers <- x[position] + x[position-1]
+    x <- c(x,fib_numbers)
+    }
+  return(x)
+}
+fibonacci(10)
+```
