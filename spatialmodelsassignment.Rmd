@@ -1,0 +1,320 @@
+---
+title: "Spatial Models"
+author: "Lexie DelViscio and Francesca Dellacqua"
+date: "2/27/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(vegan)
+library(nlme)
+data(BCI)
+```
+
+```{r}
+BCI_xy = data.frame(x = rep(seq(625754, 626654, by=100), each=5), 
+                    y = rep(seq(1011569,  1011969, by=100), len=50))
+```
+
+1) Examine if there is evidence of spatial dependence in a rare and a common species in the BCI tree dataset
+```{r}
+# # compute column sums and plot distribution
+# # it will be very skewed
+# # log transform the distribution
+# # ~ 50th percentile for rare 
+sum_cols = apply(BCI, 2, sum)
+head(sum_cols)
+quantile(log(sum_cols))
+exp(3.2)
+```
+plotting column sum distribution
+```{r}
+hist(sum_cols)
+hist(log(sum_cols))
+```
+
+rare_species
+```{r}
+#"Cecropia.obtusifolia"
+# 25 occurences
+sum_cols
+rare_species <- BCI[,35]
+rare_species_name <- colnames(BCI[35])
+sum(rare_species)
+rare_species_name
+```
+common_species
+```{r}
+exp(5.2)
+# "Cecropia.insignis"
+# 294 occurences
+common_species <- BCI[,34]
+common_species_name <- colnames(BCI[34])
+sum(common_species)
+common_species_name
+```
+
+distance calculations
+```{r}
+sr <- rowSums(BCI > 0)
+sr
+sr_dist <- dist(sr)
+rare_dist = dist(rare_species)
+common_dist = dist(common_species)
+xy_dist = dist(BCI_xy)
+max_dist <- max(xy_dist) / 2
+```
+
+```{r}
+par(mfrow=c(1,2))
+col_brks <- hist(rare_species, plot=F)$breaks
+col_indices <- as.numeric(cut(rare_species, col_brks))
+cols <- rev(terrain.colors(length(col_brks)))
+plot(BCI_xy, cex=2, pch=19, col=cols[col_indices], main= "rare")
+
+# plot result
+plot(xy_dist, rare_dist)
+abline(lm(rare_dist ~ xy_dist), lwd=3, col='red')
+lines(lowess(xy_dist, rare_dist), lwd=3, col='pink')
+abline(v = max_dist, col='red', lwd=3, lty=2)
+```
+
+```{r}
+par(mfrow=c(1,2))
+col_brks <- hist(common_species, plot=F)$breaks
+col_indices <- as.numeric(cut(common_species, col_brks))
+cols <- rev(terrain.colors(length(col_brks)))
+plot(BCI_xy, cex=2, pch=19, col=cols[col_indices], main= "common")
+# plot result
+plot(xy_dist, common_dist)
+abline(lm(common_dist ~ xy_dist), lwd=3, col='red')
+lines(lowess(xy_dist, common_dist), lwd=3, col='pink')
+abline(v = max_dist, col='red', lwd=3, lty=2)
+```
+
+```{r}
+obs_cor_rare <- cor(xy_dist, rare_dist)
+obs_cor_rare
+obs_cor_common <- cor(xy_dist, common_dist)
+obs_cor_common
+```
+investigating the rare with a random set of sampled data
+```{r}
+par(mfrow=c(1,1))
+# rare random
+null_xy <- BCI_xy[sample(nrow(BCI_xy)), ]
+null_dist <- dist(null_xy)
+
+plot(null_dist, rare_dist)
+abline(lm(rare_dist ~ null_dist), lwd=3, col='red')
+lines(lowess(null_dist, rare_dist), lwd=3, col='pink')
+abline(v = max_dist, col='red', lwd=3, lty=2)
+rare_null_cor <-  cor(null_dist, rare_dist)
+```
+ 
+```{r}
+rare_null_cor
+obs_cor_rare
+```
+
+```{r}
+rare_mantel <- mantel(xy_dist, rare_dist)
+rare_mantel
+
+```
+This shows that there is not a significant p-value, further proving there is most likely random spatial error of the rare species. 
+
+investigating the common with a random set of sampled data
+```{r}
+par(mfrow=c(1,1))
+# common random
+null_xy <- BCI_xy[sample(nrow(BCI_xy)), ]
+null_dist <- dist(null_xy)
+
+plot(null_dist, common_dist)
+abline(lm(common_dist ~ null_dist), lwd=3, col='red')
+lines(lowess(null_dist, common_dist), lwd=3, col='pink')
+abline(v = max_dist, col='red', lwd=3, lty=2)
+common_null_cor <-  cor(null_dist, common_dist)
+```
+
+```{r}
+common_null_cor
+obs_cor_common
+
+```
+both show slight evidence of a positive relationship
+```{r}
+common_mantel <- mantel(xy_dist, common_dist)
+common_mantel
+```
+This shows that there is a significant p-value, and supports our theory that a positive relationship may be present
+
+```{r}
+
+comm_dist <- vegdist(BCI)
+# correlograms
+rare_corlog = mantel.correlog(rare_dist, xy_dist)
+common_corlog = mantel.correlog(common_dist, xy_dist)
+comm_corlog = mantel.correlog(comm_dist, xy_dist)
+rare_corlog
+common_corlog
+comm_corlog
+```
+
+```{r}
+
+par(mfrow=c(1,3))
+plot(rare_corlog)
+mtext(side=3, 'Rare')
+abline(v = max_dist, col='red', lwd=3, lty=2)
+plot(common_corlog)
+mtext(side=3, 'Common')
+abline(v = max_dist, col='red', lwd=3, lty=2)
+plot(comm_corlog)
+mtext(side=3, 'Community')
+abline(v = max_dist, col='red', lwd=3, lty=2)
+```
+as expected based on the previous analysis, we can see that there are no significant distance classes for the rare species, however for the common species and the community matrix there is prescence of the fact that samples close to one another are more similar. Although, further distance classes seem to not differ from random error. 
+
+To conclude, there is evidence of positive spatial dependence in the common species "Cecropia.insignis", but there is not evidence of spatial dependence in the rare species "Cecropia.obtusifolia".
+```{r}
+common_species_name
+rare_species_name
+```
+
+
+# 2
+
+```{r}
+library(vegan)
+data(BCI)
+sp_ids = c("Cordia.lasiocalyx", "Hirtella.triandra",
+           "Picramnia.latifolia", "Quassia.amara",
+           "Tabernaemontana.arborea", "Trattinnickia.aspera", 
+           "Xylopia.macrantha")
+sp_ids
+pred_sp <- BCI[, sp_ids]
+names(pred_sp) <- paste('sp', letters[1:7], sep= "")
+names(pred_sp)
+resp_sp<- BCI[,"Drypetes.standleyi"]
+```
+linear model
+```{r}
+sp_mod_one = gls(resp_sp ~ spb, data= pred_sp)
+summary(sp_mod_one)
+
+sum(BCI[,"Xylopia.macrantha"])
+
+x <- BCI_xy$x
+y <- BCI_xy$y
+
+par(mfrow=c(1,1))
+plot(Variogram(sp_mod_one, form = ~x + y), main = "sp_one BCIX +BCIY")
+sp_one_lin = update(sp_mod_one, corr= corLin(form= ~ x + y))
+plot(Variogram(sp_one_lin, maxDist = max_dist), main = sp_one_lin)
+plot(Variogram(sp_one_lin, resType = 'n', maxDist = max_dist))
+```
+linear model with nugget
+```{r}
+# adding a nugget
+sp_one_linN = update(sp_one_lin, corr=corLin(form=~x + y, nugget=T))
+plot(Variogram(sp_one_linN, maxDist = max_dist))
+plot(Variogram(sp_one_linN, resType='n', maxDist = max_dist))
+```
+exponential model
+```{r}
+sp_one_exp = update(sp_mod_one, corr= corExp(form= ~ x + y))
+plot(Variogram(sp_one_exp, maxDist = max_dist))
+plot(Variogram(sp_one_exp, resType='n', maxDist = max_dist))
+```
+exponential model with nugget
+```{r}
+sp_one_expN = update(sp_mod_one, corr= corExp(form= ~ x + y, nugget = T))
+plot(Variogram(sp_one_expN, maxDist = max_dist))
+plot(Variogram(sp_one_expN, resType='n', maxDist = max_dist))
+```
+model comparison
+```{r}
+anova(sp_mod_one, sp_one_lin, sp_one_linN, sp_one_exp, sp_one_expN, test = F)
+```
+with and without the nuggets all have pretty similar AIC scores, however since the graphs look so much better with the nuggets we will continue to study those. in addition, adding the error terms to the original sp_mod_one greatly improved the model as seen in the AIC scores for models 2-4 being at least 30 points lower than the original. 
+```{r}
+
+summary(sp_one_linN)
+summary(sp_one_expN)
+
+```
+the linear seems to fit slightly better based on the summary outputs 
+
+Model with all of the response species
+```{r}
+sp_all_dat = data.frame(resp_sp, pred_sp, BCI_xy)
+sp_mod_all =  gls(resp_sp ~ spa + spb + spc +spd +spe + spf + spg, data= sp_all_dat)
+summary(sp_mod_all)
+```
+
+```{r}
+plot(Variogram(sp_mod_all, form = ~x + y), main = "sp_all BCIX +BCIY")
+```
+
+linear model
+```{r}
+par(mfrow=c(1,2))
+sp_all_lin = update(sp_mod_all, corr= corLin(form= ~ x + y))
+plot(Variogram(sp_all_lin, maxDist = max_dist), main = sp_one_lin)
+plot(Variogram(sp_all_lin, resType = 'n', maxDist = max_dist))
+```
+linear model with nugget
+```{r}
+par(mfrow=c(1,2))
+sp_all_linN = update(sp_mod_all, corr=corLin(form=~x + y, nugget=T))
+plot(Variogram(sp_all_linN, maxDist = max_dist))
+plot(Variogram(sp_all_linN, resType='n', maxDist = max_dist))
+```
+exponential model
+```{r}
+sp_all_exp = update(sp_mod_all, corr= corExp(form= ~ x + y))
+plot(Variogram(sp_all_exp, maxDist = max_dist))
+plot(Variogram(sp_all_exp, resType='n', maxDist = max_dist))
+
+```
+exponential model with nugget
+```{r}
+
+sp_all_expN = update(sp_mod_all, corr= corExp(form= ~ x + y, nugget = T))
+plot(Variogram(sp_all_expN, maxDist = max_dist))
+plot(Variogram(sp_all_expN, resType='n', maxDist = max_dist))
+```
+rational quadtratic model
+```{r}
+
+sp_all_rat = update(sp_mod_all, corr= corRatio(form= ~ x + y))
+plot(Variogram(sp_all_rat, maxDist = max_dist))
+plot(Variogram(sp_all_rat, resType='n', maxDist = max_dist))
+```
+rational quadratic with nugget
+```{r}
+
+sp_all_ratN = update(sp_mod_all, corr= corRatio(form= ~ x + y, nugget = T))
+plot(Variogram(sp_all_ratN, maxDist = max_dist))
+plot(Variogram(sp_all_ratN, resType='n', maxDist = max_dist))
+```
+from the graphs it seems as if the rational quadtratic and exponential models fit the data the  best. We can further confirm this using the anova output.
+
+model comparison
+```{r}
+anova(sp_mod_all, sp_all_lin, sp_all_linN, sp_all_exp, sp_all_expN, sp_all_rat, sp_all_ratN, test = F)
+```
+
+as expected from the graphical outputs, the linear and original models have 
+the highest AIC scores making them less accurate models. However, the exponential
+form seems to be the best model fit, having slightly lower scores than the rational
+quadratic (ratio) forms. 
+
+There seems to be evidence of spatial dependence in both models (one species as response and all species as response).
+
